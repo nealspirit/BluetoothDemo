@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 import cn.com.heaton.blelibrary.ble.Ble;
+import cn.com.heaton.blelibrary.ble.callback.BleReadCallback;
 import cn.com.heaton.blelibrary.ble.callback.BleWriteCallback;
 import cn.com.heaton.blelibrary.ble.model.BleDevice;
 
@@ -94,16 +96,28 @@ public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdap
                 List<BleDevice> deviceList = Ble.getInstance().getConnectedDevices();
                 UUID serviceUuid = characteristic.getService().getUuid();
                 UUID characteristicUuid = characteristic.getUuid();
-                byte[] bytes = ByteUtils.hexStr2Bytes(holder.etWriteValue.getText().toString());
-                if (!deviceList.isEmpty()){
-                    BleDevice device = deviceList.get(0);
-                    Ble.getInstance().writeByUuid(device, bytes, serviceUuid, characteristicUuid,
-                            new BleWriteCallback<BleDevice>() {
-                                @Override
-                                public void onWriteSuccess(BleDevice device, BluetoothGattCharacteristic characteristic) {
-                                    
-                                }
-                            });
+                try {
+                    byte[] bytes = ByteUtils.hexStr2Bytes(holder.etWriteValue.getText().toString());
+                    if (!deviceList.isEmpty()) {
+                        BleDevice device = deviceList.get(0);
+                        Ble.getInstance().writeByUuid(device, bytes, serviceUuid, characteristicUuid,
+                                new BleWriteCallback<BleDevice>() {
+                                    @Override
+                                    public void onWriteSuccess(BleDevice device, BluetoothGattCharacteristic characteristic) {
+                                        Toast.makeText(context, "写入成功", Toast.LENGTH_LONG).show();
+                                    }
+
+                                    @Override
+                                    public void onWriteFailed(BleDevice device, int failedCode) {
+                                        super.onWriteFailed(device, failedCode);
+                                        Toast.makeText(context, "写入失败，错误码：" + failedCode, Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                    }
+                }catch (NumberFormatException e){
+                    e.printStackTrace();
+                    holder.etWriteValue.requestFocus();
+                    holder.etWriteValue.setError("请输入十六进制字符");
                 }
             }
         });
@@ -111,7 +125,27 @@ public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdap
         holder.btnRead.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                List<BleDevice> deviceList = Ble.getInstance().getConnectedDevices();
+                UUID serviceUuid = characteristic.getService().getUuid();
+                UUID characteristicUuid = characteristic.getUuid();
+                if (!deviceList.isEmpty()){
+                    BleDevice device = deviceList.get(0);
+                    Ble.getInstance().readByUuid(device, serviceUuid, characteristicUuid,
+                            new BleReadCallback<BleDevice>() {
+                                @Override
+                                public void onReadSuccess(BleDevice dedvice, BluetoothGattCharacteristic characteristic) {
+                                    super.onReadSuccess(dedvice, characteristic);
+                                    holder.tvValue.setVisibility(View.VISIBLE);
+                                    holder.tvValue.setText("value:0x" + ByteUtils.bytes2HexStr(characteristic.getValue()));
+                                }
 
+                                @Override
+                                public void onReadFailed(BleDevice device, int failedCode) {
+                                    super.onReadFailed(device, failedCode);
+                                    Toast.makeText(context, "读取失败，错误码：" + failedCode, Toast.LENGTH_LONG).show();
+                                }
+                            });
+                }
             }
         });
     }

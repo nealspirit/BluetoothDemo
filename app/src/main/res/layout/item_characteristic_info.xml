@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tool="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textColor="@color/text"
+        android:text="Characteristic"/>
+
+    <TextView
+        android:id="@+id/tv_characteristic_uuid"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0x0800"
+        android:textColor="@color/text_gray"/>
+
+    <TextView
+        android:id="@+id/tv_properties"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="read,write"
+        android:textColor="@color/text"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btn_send_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/send"
+            android:visibility="gone"
+
+            tool:visibility="visible"/>
+
+        <Button
+            android:id="@+id/btn_read_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/read"
+            android:visibility="gone"
+            tool:visibility="visible"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_read_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:layout_marginStart="15dp"
+        android:textColor="@color/text_gray"
+        android:textStyle="bold"
+        android:visibility="gone"
+
+        tool:visibility="visible"
+        tool:text="write:123"/>
+
+</LinearLayout>

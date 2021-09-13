@@ -1,6 +1,7 @@
 package com.bluetoothdemo.bledemo.ui;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -10,6 +11,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -18,15 +22,16 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.LinearInterpolator;
 import android.widget.Toast;
 
 import com.bluetoothdemo.bledemo.R;
 import com.bluetoothdemo.bledemo.adapter.ScanAdapter;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import cn.com.heaton.blelibrary.ble.Ble;
 import cn.com.heaton.blelibrary.ble.BleLog;
@@ -35,11 +40,8 @@ import cn.com.heaton.blelibrary.ble.callback.BleStatusCallback;
 import cn.com.heaton.blelibrary.ble.model.BleDevice;
 import cn.com.heaton.blelibrary.ble.model.ScanRecord;
 import cn.com.heaton.blelibrary.ble.utils.Utils;
-import cn.com.heaton.blelibrary.ble.utils.UuidUtils;
-import cn.com.superLei.aoparms.annotation.Permission;
-import cn.com.superLei.aoparms.annotation.PermissionDenied;
-import cn.com.superLei.aoparms.annotation.PermissionNoAskDenied;
-import cn.com.superLei.aoparms.common.permission.AopPermissionUtils;
+
+import static cn.com.heaton.blelibrary.ble.Ble.REQUEST_ENABLE_BT;
 
 public class MainActivity extends AppCompatActivity {
     private String TAG = MainActivity.class.getSimpleName();
@@ -50,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
     private Toolbar toolbar;
     private RecyclerView recyclerView;
     private Snackbar snackbar;
+    private FloatingActionButton floatingActionButton;
+    private ObjectAnimator animator;
 
     private List<BleDevice> bleDeviceList;
     private ScanAdapter scanAdapter;
@@ -61,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         initView();
         initAdapter();
-        initLinsenter();
+        initListener();
         initBleStatus();
         requestPermission();
     }
@@ -69,14 +73,17 @@ public class MainActivity extends AppCompatActivity {
     private void initView() {
         toolbar = findViewById(R.id.toolBar);
         setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.app_name);
 
         recyclerView = findViewById(R.id.recyclerView);
+        floatingActionButton = findViewById(R.id.fab);
 
         snackbar = Snackbar.make(recyclerView,"蓝牙未开启",Snackbar.LENGTH_LONG)
                 .setAction("开启", new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-
+                        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                        startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
                     }
                 });
     }
@@ -88,8 +95,21 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(scanAdapter);
     }
 
-    private void initLinsenter(){
+    private void initListener(){
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                rescan();
+            }
+        });
 
+        scanAdapter.setItemClickListener(new ScanAdapter.ItemClickListener() {
+            @Override
+            public void onItemClickListener(BleDevice device) {
+                startActivity(new Intent(MainActivity.this,DeviceConnectActivity.class)
+                        .putExtra("BluetoothDevice", device));
+            }
+        });
     }
 
     private void initBleStatus(){
@@ -109,36 +129,20 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //请求权限
-    @Permission(value = {Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.ACCESS_FINE_LOCATION},
-            requestCode = REQUEST_PERMISSION_LOCATION,
-            rationale = "需要蓝牙相关权限")
-    public void requestPermission() {
-        checkBlueStatus();
-    }
-
-    @PermissionDenied
-    public void permissionDenied(int requestCode, List<String> denyList) {
-        if (requestCode == REQUEST_PERMISSION_LOCATION) {
-            Log.e(TAG, "permissionDenied>>>:定位权限被拒 " + denyList.toString());
-        } else if (requestCode == REQUEST_PERMISSION_WRITE) {
-            Log.e(TAG, "permissionDenied>>>:读写权限被拒 " + denyList.toString());
+    private void requestPermission(){
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1);
+        }else {
+            checkBlueStatus();
         }
-    }
-
-    @PermissionNoAskDenied
-    public void permissionNoAskDenied(int requestCode, List<String> denyNoAskList) {
-        if (requestCode == REQUEST_PERMISSION_LOCATION) {
-            Log.e(TAG, "permissionNoAskDenied 定位权限被拒>>>: " + denyNoAskList.toString());
-        } else if (requestCode == REQUEST_PERMISSION_WRITE) {
-            Log.e(TAG, "permissionDenied>>>:读写权限被拒>>> " + denyNoAskList.toString());
-        }
-        AopPermissionUtils.showGoSetting(this, "为了更好的体验，建议前往设置页面打开权限");
     }
 
     private void checkBlueStatus() {
         if (!ble.isSupportBle(this)) {
-            com.bluetoothdemo.bledemo.Utils.showToast(R.string.ble_not_supported);
+            Toast.makeText(this,R.string.ble_not_supported,Toast.LENGTH_LONG).show();
             finish();
         }
         if (!ble.isBleEnable()) {
@@ -166,9 +170,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void rescan(){
+        if (ble != null && !ble.isScanning()){
+            bleDeviceList.clear();
+            scanAdapter.notifyDataSetChanged();
+            checkBlueStatus();
+        }
+    }
+
     private BleScanCallback<BleDevice> scanCallback = new BleScanCallback<BleDevice>() {
         @Override
         public void onLeScan(final BleDevice device, int rssi, byte[] scanRecord) {
+            Log.d(TAG, "onLeScan: " + "name: " + device.getBleName() + "; address: " + device.getBleAddress());
             synchronized (ble.getLocker()) {
                 for (int i = 0; i < bleDeviceList.size(); i++) {
                     BleDevice bleDevice = bleDeviceList.get(i);
@@ -202,9 +215,39 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void startBannerLoadingAnim() {
+        floatingActionButton.setImageResource(R.drawable.ic_loading);
+        animator = ObjectAnimator.ofFloat(floatingActionButton, "rotation", 0, 360);
+        animator.setRepeatCount(ValueAnimator.INFINITE);
+        animator.setDuration(800);
+        animator.setInterpolator(new LinearInterpolator());
+        animator.start();
     }
 
     private void stopBannerLoadingAnim() {
+        floatingActionButton.setImageResource(R.drawable.ic_bluetooth_audio_black_24dp);
+        animator.cancel();
+        floatingActionButton.setRotation(0);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_ENABLE_BT) {
+            if (resultCode == RESULT_CANCELED) {
+                Toast.makeText(this, "蓝牙未启动", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == 1){
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+
+            }else {
+                Toast.makeText(this,"定位权限被禁止",Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        }
+    }
 }

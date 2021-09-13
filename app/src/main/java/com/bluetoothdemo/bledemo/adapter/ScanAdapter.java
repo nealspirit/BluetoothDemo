@@ -46,7 +46,11 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         BleDevice device = bleDeviceList.get(position);
-        holder.deviceNameTv.setText(device.getBleName());
+        if (device.getBleName() != null) {
+            holder.deviceNameTv.setText(device.getBleName());
+        }else {
+            holder.deviceNameTv.setText("UnNamed");
+        }
         holder.deviceAddressTv.setText(device.getBleAddress());
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -15,7 +15,7 @@
     <style name="Base.Theme.BleDemo" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimary</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorAccent">@color/colorPrimary</item>
         <item name="actionMenuTextColor">@color/white</item>
         <item name="actionMenuTextAppearance">@style/MenuTextStyle</item>
         <item name="android:actionMenuTextAppearance">@style/MenuTextStyle</item>

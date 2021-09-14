@@ -1,12 +1,13 @@
 package com.bluetoothdemo.bledemo.adapter;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,7 +15,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bluetoothdemo.bledemo.R;
-import com.bluetoothdemo.bledemo.Utils.ByteUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +23,8 @@ import cn.com.heaton.blelibrary.ble.Ble;
 import cn.com.heaton.blelibrary.ble.callback.BleReadCallback;
 import cn.com.heaton.blelibrary.ble.callback.BleWriteCallback;
 import cn.com.heaton.blelibrary.ble.model.BleDevice;
+import cn.com.heaton.blelibrary.ble.utils.ByteUtils;
+import cn.com.heaton.blelibrary.ble.utils.ThreadUtils;
 
 public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdapter.ViewHolder>{
     private Context context;
@@ -36,7 +38,8 @@ public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdap
     static class ViewHolder extends RecyclerView.ViewHolder{
         TextView tvCharacteristicUuid;
         TextView tvProperties;
-        Button btnWrite, btnRead;
+        ImageView btnWrite;
+        ImageView btnRead;
         TextView tvValue;
         EditText etWriteValue;
 
@@ -44,8 +47,8 @@ public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdap
             super(itemView);
             tvCharacteristicUuid = itemView.findViewById(R.id.tv_characteristic_uuid);
             tvProperties = itemView.findViewById(R.id.tv_properties);
-            btnWrite = itemView.findViewById(R.id.btn_send_value);
-            btnRead = itemView.findViewById(R.id.btn_read_value);
+            btnWrite = itemView.findViewById(R.id.iv_write_value);
+            btnRead = itemView.findViewById(R.id.iv_read_value);
             tvValue = itemView.findViewById(R.id.tv_read_value);
             etWriteValue = itemView.findViewById(R.id.et_write_value);
         }
@@ -58,6 +61,7 @@ public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdap
         return new ViewHolder(view);
     }
 
+    @SuppressLint("RestrictedApi")
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         BluetoothGattCharacteristic characteristic = gattCharacteristicList.get(position);
@@ -104,13 +108,23 @@ public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdap
                                 new BleWriteCallback<BleDevice>() {
                                     @Override
                                     public void onWriteSuccess(BleDevice device, BluetoothGattCharacteristic characteristic) {
-                                        Toast.makeText(context, "写入成功", Toast.LENGTH_LONG).show();
+                                        ThreadUtils.ui(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                Toast.makeText(context, "写入成功", Toast.LENGTH_LONG).show();
+                                            }
+                                        });
                                     }
 
                                     @Override
                                     public void onWriteFailed(BleDevice device, int failedCode) {
                                         super.onWriteFailed(device, failedCode);
-                                        Toast.makeText(context, "写入失败，错误码：" + failedCode, Toast.LENGTH_LONG).show();
+                                        ThreadUtils.ui(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                Toast.makeText(context, "写入失败", Toast.LENGTH_LONG).show();
+                                            }
+                                        });
                                     }
                                 });
                     }
@@ -135,14 +149,29 @@ public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdap
                                 @Override
                                 public void onReadSuccess(BleDevice dedvice, BluetoothGattCharacteristic characteristic) {
                                     super.onReadSuccess(dedvice, characteristic);
-                                    holder.tvValue.setVisibility(View.VISIBLE);
-                                    holder.tvValue.setText("value:0x" + ByteUtils.bytes2HexStr(characteristic.getValue()));
+                                    ThreadUtils.ui(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            holder.tvValue.setVisibility(View.VISIBLE);
+                                            holder.tvValue.setText("value:0x" + ByteUtils.bytes2HexStr(characteristic.getValue()));
+                                        }
+                                    });
                                 }
 
                                 @Override
                                 public void onReadFailed(BleDevice device, int failedCode) {
                                     super.onReadFailed(device, failedCode);
-                                    Toast.makeText(context, "读取失败，错误码：" + failedCode, Toast.LENGTH_LONG).show();
+                                    ThreadUtils.ui(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            ThreadUtils.ui(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    Toast.makeText(context, "读取失败", Toast.LENGTH_LONG).show();
+                                                }
+                                            });
+                                        }
+                                    });
                                 }
                             });
                 }

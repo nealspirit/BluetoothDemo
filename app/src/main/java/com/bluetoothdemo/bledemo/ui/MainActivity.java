@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -91,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
     private void initAdapter() {
         bleDeviceList = new ArrayList<>();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
         scanAdapter = new ScanAdapter(bleDeviceList);
         recyclerView.setAdapter(scanAdapter);
     }
@@ -106,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
         scanAdapter.setItemClickListener(new ScanAdapter.ItemClickListener() {
             @Override
             public void onItemClickListener(BleDevice device) {
+                ble.stopScan();
                 startActivity(new Intent(MainActivity.this,DeviceConnectActivity.class)
                         .putExtra("BluetoothDevice", device));
             }
@@ -171,10 +174,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void rescan(){
-        if (ble != null && !ble.isScanning()){
-            bleDeviceList.clear();
-            scanAdapter.notifyDataSetChanged();
-            checkBlueStatus();
+        if (ble != null){
+            if (ble.isScanning()){
+                ble.stopScan();
+            }else {
+                bleDeviceList.clear();
+                scanAdapter.notifyDataSetChanged();
+                checkBlueStatus();
+            }
         }
     }
 

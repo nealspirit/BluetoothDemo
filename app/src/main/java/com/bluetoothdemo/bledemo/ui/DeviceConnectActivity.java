@@ -1,15 +1,19 @@
 package com.bluetoothdemo.bledemo.ui;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattServer;
 import android.bluetooth.BluetoothGattService;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.bluetoothdemo.bledemo.R;
@@ -28,12 +32,16 @@ import cn.com.heaton.blelibrary.ble.utils.ByteUtils;
 
 public class DeviceConnectActivity extends AppCompatActivity {
     private String TAG = MainActivity.class.getSimpleName();
+
     private Ble<BleDevice> ble;
     private BleDevice device;
+    private List<BluetoothGattService> gattServiceList;
+
     private Toolbar toolbar;
     private RecyclerView rvServiceList;
+    private Menu menu;
+
     private ConnectInfoAdapter infoAdapter;
-    private List<BluetoothGattService> gattServiceList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,13 +50,17 @@ public class DeviceConnectActivity extends AppCompatActivity {
         initView();
         initData();
         initAdapter();
-        initListener();
     }
 
     private void initView() {
         toolbar = findViewById(R.id.toolBar);
         setSupportActionBar(toolbar);
         rvServiceList = findViewById(R.id.recyclerView_service);
+
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null){
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
     }
 
     private void initData() {
@@ -67,13 +79,10 @@ public class DeviceConnectActivity extends AppCompatActivity {
         gattServiceList = new ArrayList<>();
         infoAdapter = new ConnectInfoAdapter(this, gattServiceList);
         rvServiceList.setLayoutManager(new LinearLayoutManager(this));
+        rvServiceList.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
         rvServiceList.getItemAnimator().setChangeDuration(300);
         rvServiceList.getItemAnimator().setMoveDuration(300);
         rvServiceList.setAdapter(infoAdapter);
-    }
-
-    private void initListener(){
-
     }
 
     private BleConnectCallback<BleDevice> connectCallback = new BleConnectCallback<BleDevice>() {
@@ -81,17 +90,20 @@ public class DeviceConnectActivity extends AppCompatActivity {
         public void onConnectionChanged(BleDevice device) {
             if (device.isConnected()){
                 toolbar.setSubtitle(R.string.line_success);
+                setMenuVisible(false);
             }else if (device.isConnecting()){
                 toolbar.setSubtitle(R.string.line_connecting);
+                setMenuVisible(false);
             }else if (device.isDisconnected()){
                 toolbar.setSubtitle(R.string.line_disconnect);
+                setMenuVisible(true);
             }
         }
 
         @Override
         public void onConnectFailed(BleDevice device, int errorCode) {
             super.onConnectFailed(device, errorCode);
-            Toast.makeText(DeviceConnectActivity.this,"连接异常，异常码：" + errorCode, Toast.LENGTH_LONG).show();
+            Toast.makeText(DeviceConnectActivity.this,"连接异常", Toast.LENGTH_LONG).show();
         }
 
         @Override
@@ -134,6 +146,45 @@ public class DeviceConnectActivity extends AppCompatActivity {
             });
         }
     };
+
+    /**
+     * 设置menu是否可见
+     * @param isMenuVisible
+     */
+    private void setMenuVisible(boolean isMenuVisible){
+        if (menu != null){
+            for (int i = 0; i < menu.size(); i++){
+                menu.getItem(i).setVisible(isMenuVisible);
+            }
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        this.menu = menu;
+        getMenuInflater().inflate(R.menu.reconnect, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == android.R.id.home){
+            finish();
+        }else if (item.getItemId() == R.id.Reconnect){
+            if (ble == null){
+                ble = Ble.getInstance();
+            }
+            if (device != null){
+                gattServiceList.clear();
+                infoAdapter.notifyDataSetChanged();
+                ble.connect(device, connectCallback);
+            }else {
+                Toast.makeText(this, "数据丢失，请重新选择设备", Toast.LENGTH_LONG).show();
+                finish();
+            }
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     @Override
     protected void onDestroy() {

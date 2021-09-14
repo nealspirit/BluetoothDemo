@@ -15,14 +15,10 @@ import com.bluetoothdemo.bledemo.R;
 
 import java.util.List;
 
-import cn.com.heaton.blelibrary.ble.model.BleDevice;
-
 public class ConnectInfoAdapter extends RecyclerView.Adapter<ConnectInfoAdapter.ViewHolder>{
     private Context context;
     private List<BluetoothGattService> serviceList;
     private int opened = -1;
-
-    private ItemClickListener mItemClickListener;
 
     static class ViewHolder extends RecyclerView.ViewHolder{
         TextView tvServiceUuid;
@@ -75,20 +71,12 @@ public class ConnectInfoAdapter extends RecyclerView.Adapter<ConnectInfoAdapter.
         });
 
         CharacteristcAdapter characteristcAdapter = new CharacteristcAdapter(context, service.getCharacteristics());
-        holder.recyclerView.setLayoutManager(new LinearLayoutManager(context));
+        holder.recyclerView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         holder.recyclerView.setAdapter(characteristcAdapter);
     }
 
     @Override
     public int getItemCount() {
         return serviceList.size();
-    }
-
-    public void setItemClickListener(ItemClickListener mItemClickListener) {
-        this.mItemClickListener = mItemClickListener;
-    }
-
-    public interface ItemClickListener{
-        void onItemClickListener();
     }
 }

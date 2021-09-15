@@ -164,12 +164,7 @@ public class CharacteristcAdapter extends RecyclerView.Adapter<CharacteristcAdap
                                     ThreadUtils.ui(new Runnable() {
                                         @Override
                                         public void run() {
-                                            ThreadUtils.ui(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    Toast.makeText(context, "读取失败", Toast.LENGTH_LONG).show();
-                                                }
-                                            });
+                                            Toast.makeText(context, "读取失败", Toast.LENGTH_LONG).show();
                                         }
                                     });
                                 }
